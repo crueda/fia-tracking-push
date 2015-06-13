@@ -27,6 +27,7 @@ import MySQLdb as mdb
 ########################################################################
 # configuracion y variables globales
 from configobj import ConfigObj
+#config = ConfigObj('/home/deimos/tracking-push/tracking-push.properties')
 config = ConfigObj('/opt/tracking-push/tracking-push.properties')
 
 LOG = config['directory_logs'] + "/push.log"
@@ -41,10 +42,10 @@ DB_FRONTEND_PASSWORD = config['mysql_passwd']
 REMOTE_IP = config['remote_ip']
 REMOTE_PORT = config['remote_port']
 
-WORKER_NUMBER = int(config['num_workers'])
 FLEET_ID = config['fleet_id']
 SLEEP_TIME = float(config['sleep_time'])
 
+PID = "/var/run/tracking-push/tracking-push"
 
 ########################################################################
 # definicion y configuracion de logs
@@ -61,6 +62,26 @@ except Exception, error:
     logger.error( '------------------------------------------------------------------')
     exit()
 ########################################################################
+
+if os.access(os.path.expanduser(PID), os.F_OK):
+        print "Checking if tracking-push process is already running..."
+        pidfile = open(os.path.expanduser(PID), "r")
+        pidfile.seek(0)
+        old_pd = pidfile.readline()
+        # process PID
+        if os.path.exists("/proc/%s" % old_pd) and old_pd!="":
+			print "You already have an instance of the tracking-push process running"
+			print "It is running as process %s" % old_pd
+			sys.exit(1)
+        else:
+			print "Trying to start tracking-push process..."
+			os.remove(os.path.expanduser(PID))
+
+#This is part of code where we put a PID file in the lock file
+pidfile = open(os.path.expanduser(PID), 'a')
+print "Tracking-push process started with PID: %s" % os.getpid()
+pidfile.write(str(os.getpid()))
+pidfile.close()
 
 
 ########################################################################
@@ -87,10 +108,10 @@ def from_iso8601(when=None, tz=BERLIN):
 	
 def main():
 	
-	con = mdb.connect(DB_FRONTEND_IP, DB_FRONTEND_USER, DB_FRONTEND_PASSWORD, DB_FRONTEND_NAME)
-
 	while True:
-		logger.info( 'Nueva ejecucion del proceso con pid %d' % (os.getpid()) )
+		logger.debug( 'Leyendo datos...' )
+
+        con = mdb.connect(DB_FRONTEND_IP, DB_FRONTEND_USER, DB_FRONTEND_PASSWORD, DB_FRONTEND_NAME)
 
 		cur = con.cursor()
 		cur.execute("select TRACKING_1.VEHICLE_LICENSE,HEADING,GPS_SPEED,POS_LATITUDE_DEGREE,POS_LATITUDE_MIN,POS_LONGITUDE_DEGREE,POS_LONGITUDE_MIN,POS_DATE from TRACKING_1, HAS where TRACKING_1.VEHICLE_LICENSE = HAS.VEHICLE_LICENSE and HAS.FLEET_ID="+FLEET_ID)
@@ -121,7 +142,7 @@ def main():
 			d['date'] = date
 
 			#if (vehicle_license=='001'):
-				#print (lat)
+			#	print (lat)
 			objects_list.append(d)
 
 		json_data = json.dumps(objects_list, indent=2)
