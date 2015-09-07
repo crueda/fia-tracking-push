@@ -27,8 +27,7 @@ import MySQLdb as mdb
 ########################################################################
 # configuracion y variables globales
 from configobj import ConfigObj
-#config = ConfigObj('/home/deimos/tracking-push/tracking-push.properties')
-config = ConfigObj('/opt/tracking-push/tracking-push.properties')
+config = ConfigObj('./tracking-push.properties')
 
 LOG = config['directory_logs'] + "/push.log"
 LOG_FOR_ROTATE = 10
@@ -111,7 +110,7 @@ def main():
 	while True:
 		logger.debug( 'Leyendo datos...' )
 
-        con = mdb.connect(DB_FRONTEND_IP, DB_FRONTEND_USER, DB_FRONTEND_PASSWORD, DB_FRONTEND_NAME)
+        	con = mdb.connect(DB_FRONTEND_IP, DB_FRONTEND_USER, DB_FRONTEND_PASSWORD, DB_FRONTEND_NAME)
 
 		cur = con.cursor()
 		cur.execute("select TRACKING_1.VEHICLE_LICENSE,HEADING,GPS_SPEED,POS_LATITUDE_DEGREE,POS_LATITUDE_MIN,POS_LONGITUDE_DEGREE,POS_LONGITUDE_MIN,POS_DATE from TRACKING_1, HAS where TRACKING_1.VEHICLE_LICENSE = HAS.VEHICLE_LICENSE and HAS.FLEET_ID="+FLEET_ID)
